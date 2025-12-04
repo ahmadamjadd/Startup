@@ -1,7 +1,6 @@
 from django.contrib import admin
-# from .models import Login, Features
+from .models import RoommateProfile
 
 
 # Register your models here.
-# admin.site.register(Login)
-# admin.site.register(Features)
+admin.site.register(RoommateProfile)
