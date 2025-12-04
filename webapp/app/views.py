@@ -11,7 +11,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
-from .forms import UserRegisterForm, QuizForm
+from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm
 from .models import RoommateProfile, User
 
 
@@ -65,11 +65,6 @@ def register_view(request):
             user.is_active = False
             user.set_password(form.cleaned_data['password'])
             user.save()
-            print("--- EMAIL DEBUG START ---")
-            print(f"User: {os.getenv('EMAIL_ADDRESS')}")
-            print(f"Password Read: {os.getenv('EMAIL_HOST_PASSWORD')}")
-            print("--- EMAIL DEBUG END ---")
-
             if email_user(request, user):
                 messages.info(request, 'Please confirm your email address to complete the registration.')
                 return redirect('login')
@@ -84,7 +79,7 @@ def register_view(request):
 
 def login_view(request):
     if request.method == 'POST':
-        form = AuthenticationForm(data=request.POST)
+        form = EmailAuthenticationForm(data=request.POST)
         if form.is_valid():
             user  = form.get_user()
             login(request, user)
@@ -94,7 +89,7 @@ def login_view(request):
             except RoommateProfile.DoesNotExist:
                 return redirect('quiz')
     else:
-        form = AuthenticationForm()
+        form = EmailAuthenticationForm()
     return render(request, 'login.html', {'form': form})
 
 @login_required
