@@ -105,47 +105,6 @@ def quiz_view(request):
         form = QuizForm()
     return render(request, 'quiz.html', {'form': form})
 
-@login_required
-def dashboard_view(request):
-    try:
-        my_profile = request.user.roommateprofile
-    except RoommateProfile.DoesNotExist:
-        return redirect('quiz')
-
-    all_profiles = RoommateProfile.objects.exclude(user=request.user)
-    matches = []
-
-    for other in all_profiles:
-        score = 100
-
-        if my_profile.sleep_schedule != other.sleep_schedule:
-            score -= 25
-
-        if my_profile.study_habit != other.study_habit:
-            score -= 15
-
-        clean_diff = abs(my_profile.cleanliness_level - other.cleanliness_level)
-        score -= (clean_diff * 5)
-
-        noise_diff = abs(my_profile.noise_tolerance - other.noise_tolerance)
-        score -= (noise_diff * 5)
-
-        final_score = max(score, 0)
-
-        matches.append({
-            'name': other.user.first_name or other.user.username,
-            'score': final_score,
-            'sleep': other.sleep_schedule,
-            'clean': other.cleanliness_level,
-            'phone': other.phone_number, # Explicitly passed for template
-            'profile': other
-        })
-
-    matches.sort(key=lambda x: x['score'], reverse=True)
-    top_matches = matches[:5]
-
-    return render(request, 'dashboard.html', {'matches': top_matches})
-
 def logout_view(request):
     logout(request)
     return redirect('login')
@@ -170,7 +129,6 @@ def dashboard_view(request):
     except RoommateProfile.DoesNotExist:
         return redirect('quiz')
 
-    # --- CHECK FOR MISSING PHONE ---
     missing_phone = False
     phone_form = None
 
@@ -178,12 +136,10 @@ def dashboard_view(request):
         missing_phone = True
         phone_form = UpdateForm(instance=my_profile)
 
-    # --- MATCHING LOGIC (Same as before) ---
     all_profiles = RoommateProfile.objects.exclude(user=request.user)
     matches = []
 
     for other in all_profiles:
-        # (Your matching logic stays exactly the same)
         score = 100
         if my_profile.sleep_schedule != other.sleep_schedule: score -= 25
         if my_profile.study_habit != other.study_habit: score -= 15
