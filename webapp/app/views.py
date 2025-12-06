@@ -11,7 +11,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
 from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm
 from .models import RoommateProfile, User
-from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm, PhoneUpdateForm
+from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm, UpdateForm
 
 def email_user(request, user):
     """Sends a verification email to the user."""
@@ -91,7 +91,6 @@ def login_view(request):
 
 @login_required
 def quiz_view(request):
-    # Check if user already has a profile to prevent duplicate quizzes
     if hasattr(request.user, 'roommateprofile'):
         return redirect('dashboard')
 
@@ -155,7 +154,7 @@ def logout_view(request):
 def add_phone_number(request):
     """Separate view to handle existing users adding a phone number"""
     if request.method == 'POST':
-        form = PhoneUpdateForm(request.POST, instance=request.user.roommateprofile)
+        form = UpdateForm(request.POST, instance=request.user.roommateprofile)
         if form.is_valid():
             form.save()
             messages.success(request, "Phone number updated! You are now visible to matches.")
@@ -174,10 +173,10 @@ def dashboard_view(request):
     # --- CHECK FOR MISSING PHONE ---
     missing_phone = False
     phone_form = None
-    
+
     if not my_profile.phone_number:
         missing_phone = True
-        phone_form = PhoneUpdateForm(instance=my_profile)
+        phone_form = UpdateForm(instance=my_profile)
 
     # --- MATCHING LOGIC (Same as before) ---
     all_profiles = RoommateProfile.objects.exclude(user=request.user)

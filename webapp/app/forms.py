@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 
 class UserRegisterForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={
-        'class': 'form-control', 
+        'class': 'form-control',
         'placeholder': 'Enter your password'
     }))
 
@@ -24,7 +24,7 @@ class EmailAuthenticationForm(AuthenticationForm):
         label="Email",
         max_length=254,
         widget=forms.TextInput(attrs={
-            'autofocus': True, 
+            'autofocus': True,
             'class': 'form-control',  # <--- THIS WAS MISSING
             'placeholder': 'Enter your email'
         })
@@ -74,15 +74,14 @@ class QuizForm(forms.ModelForm):
             'noise_tolerance': forms.Select(attrs={'class': 'form-control'}),
             'study_habit': forms.Select(attrs={'class': 'form-control'}),
         }
-    
+
     def clean_phone_number(self):
         phone = self.cleaned_data.get('phone_number')
         if phone and RoommateProfile.objects.filter(phone_number=phone).exists():
             raise forms.ValidationError("This phone number is already in use.")
         return phone
 
-# --- NEW FORM FOR EXISTING USERS ---
-class PhoneUpdateForm(forms.ModelForm):
+class UpdateForm(forms.ModelForm):
     class Meta:
         model = RoommateProfile
         fields = ['phone_number']
