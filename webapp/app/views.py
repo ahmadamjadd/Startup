@@ -3,7 +3,6 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-# New email-related imports
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -135,7 +134,7 @@ def dashboard_view(request):
         matches.append({
             'name': other.user.first_name or other.user.username,
             'score': final_score,
-            'room': other.hostel_room_no,
+            # 'room': other.hostel_room_no,
             'sleep': other.sleep_schedule,
             'clean': other.cleanliness_level,
             'profile': other

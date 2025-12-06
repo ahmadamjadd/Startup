@@ -3,8 +3,7 @@ from django.contrib.auth.models import User
 
 class RoommateProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    hostel_room_no = models.CharField(max_length=50)
-    
+
     SLEEP_CHOICES = [
         ('Early', 'Early Bird (10 PM - 6 AM)'),
         ('Late', 'Night Owl (2 AM - 10 AM)'),
