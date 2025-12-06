@@ -1,11 +1,39 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card" style="max-width: 400px; margin: 0 auto;">
-    <h2 class="text-center">Join Smart Hostel</h2>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Create Account</button>
-    </form>
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-5">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h3 class="mb-0">Join Roomify</h3>
+                <p class="mb-0 small opacity-75">Find your perfect roommate today</p>
+            </div>
+            <div class="p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted mb-1">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text small text-muted">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary w-100 btn-custom mt-3">
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="small text-muted mb-0">Already have an account? <a href="{% url 'login' %}" class="fw-bold text-decoration-none" style="color: var(--blue);">Log in</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

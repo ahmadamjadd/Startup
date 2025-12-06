@@ -5,19 +5,39 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
 
 class UserRegisterForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control', 
+        'placeholder': 'Enter your password'
+    }))
 
     class Meta:
         model = User
         fields = ['first_name', 'username', 'email', 'password']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'John'}),
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'john_doe'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'john@example.com'}),
+        }
 
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.CharField(
         label="Email",
         max_length=254,
-        widget=forms.TextInput(attrs={'autofocus': True})
+        widget=forms.TextInput(attrs={
+            'autofocus': True, 
+            'class': 'form-control',  # <--- THIS WAS MISSING
+            'placeholder': 'Enter your email'
+        })
+    )
+    password = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control', # <--- THIS WAS MISSING
+            'placeholder': 'Enter your password'
+        })
     )
 
+    # ... (keep your existing clean method exactly as it is) ...
     def clean(self):
         email = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
@@ -40,31 +60,32 @@ class EmailAuthenticationForm(AuthenticationForm):
                     code='invalid_login',
                     params={'username': self.username_field.verbose_name},
                 )
-
         return self.cleaned_data
 
 class QuizForm(forms.ModelForm):
+    # This is for NEW users
     class Meta:
         model = RoommateProfile
         exclude = ['user']
         widgets = {
-            'phone_number': forms.TextInput(attrs={
-                'class': 'form-control', 
-                'placeholder': '03001234567',
-                'pattern': '03[0-9]{9}', # HTML5 client-side validation
-                'title': 'Must be a valid Pakistani mobile number starting with 03'
-            }),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '03001234567'}),
             'sleep_schedule': forms.Select(attrs={'class': 'form-control'}),
             'cleanliness_level': forms.Select(attrs={'class': 'form-control'}),
             'noise_tolerance': forms.Select(attrs={'class': 'form-control'}),
             'study_habit': forms.Select(attrs={'class': 'form-control'}),
         }
     
-    # Extra Server-Side Validation
     def clean_phone_number(self):
         phone = self.cleaned_data.get('phone_number')
-        if phone:
-            # Check if this number is already used by another profile
-            if RoommateProfile.objects.filter(phone_number=phone).exists():
-                raise forms.ValidationError("This phone number is already in use by another student.")
+        if phone and RoommateProfile.objects.filter(phone_number=phone).exists():
+            raise forms.ValidationError("This phone number is already in use.")
         return phone
+
+# --- NEW FORM FOR EXISTING USERS ---
+class PhoneUpdateForm(forms.ModelForm):
+    class Meta:
+        model = RoommateProfile
+        fields = ['phone_number']
+        widgets = {
+             'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '03001234567'}),
+        }

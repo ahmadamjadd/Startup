@@ -11,6 +11,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
 from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm
 from .models import RoommateProfile, User
+from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm, PhoneUpdateForm
 
 def email_user(request, user):
     """Sends a verification email to the user."""
@@ -149,3 +150,64 @@ def dashboard_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+@login_required
+def add_phone_number(request):
+    """Separate view to handle existing users adding a phone number"""
+    if request.method == 'POST':
+        form = PhoneUpdateForm(request.POST, instance=request.user.roommateprofile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Phone number updated! You are now visible to matches.")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Please enter a valid phone number starting with 03.")
+    return redirect('dashboard')
+
+@login_required
+def dashboard_view(request):
+    try:
+        my_profile = request.user.roommateprofile
+    except RoommateProfile.DoesNotExist:
+        return redirect('quiz')
+
+    # --- CHECK FOR MISSING PHONE ---
+    missing_phone = False
+    phone_form = None
+    
+    if not my_profile.phone_number:
+        missing_phone = True
+        phone_form = PhoneUpdateForm(instance=my_profile)
+
+    # --- MATCHING LOGIC (Same as before) ---
+    all_profiles = RoommateProfile.objects.exclude(user=request.user)
+    matches = []
+
+    for other in all_profiles:
+        # (Your matching logic stays exactly the same)
+        score = 100
+        if my_profile.sleep_schedule != other.sleep_schedule: score -= 25
+        if my_profile.study_habit != other.study_habit: score -= 15
+        score -= (abs(my_profile.cleanliness_level - other.cleanliness_level) * 5)
+        score -= (abs(my_profile.noise_tolerance - other.noise_tolerance) * 5)
+        final_score = max(score, 0)
+
+        matches.append({
+            'name': other.user.first_name or other.user.username,
+            'score': final_score,
+            'sleep': other.sleep_schedule,
+            'clean': other.cleanliness_level,
+            'phone': other.phone_number,
+            'profile': other
+        })
+
+    matches.sort(key=lambda x: x['score'], reverse=True)
+    top_matches = matches[:5]
+
+    context = {
+        'matches': top_matches,
+        'missing_phone': missing_phone,
+        'phone_form': phone_form
+    }
+
+    return render(request, 'dashboard.html', context)
