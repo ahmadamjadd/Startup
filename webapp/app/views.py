@@ -142,14 +142,12 @@ def dashboard_view(request):
     matches = []
 
     for other in all_profiles:
-        # --- YOUR EXISTING DISTANCE METRIC LOGIC ---
         score = 100
         if my_profile.sleep_schedule != other.sleep_schedule: score -= 25
         if my_profile.study_habit != other.study_habit: score -= 15
         score -= (abs(my_profile.cleanliness_level - other.cleanliness_level) * 5)
         score -= (abs(my_profile.noise_tolerance - other.noise_tolerance) * 5)
         final_score = max(score, 0)
-        # -------------------------------------------
 
         matches.append({
             'name': other.user.first_name or other.user.username,
@@ -158,16 +156,13 @@ def dashboard_view(request):
             'clean': other.cleanliness_level,
             'phone': other.phone_number,
             'profile': other,
-            'user_id': other.user.id # Needed for the click tracking link
+            'user_id': other.user.id
         })
 
     matches.sort(key=lambda x: x['score'], reverse=True)
     top_matches = matches[:5]
 
-    # --- METRIC LOGGING (Metrics 1 & 3) ---
-    # We record that these matches were "Viewed"
     for match in top_matches:
-        # update_or_create ensures we track "Unique" views per pair (or updates the timestamp if seen again)
         MatchInteraction.objects.update_or_create(
             viewer=request.user,
             target=match['profile'].user,
