@@ -9,4 +9,6 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('add-phone/', views.add_phone_number, name='add_phone'),
     path('activate/<uidb64>/<token>/', views.activate, name='activate'),
+    path('connect/<int:target_id>/', views.track_whatsapp_click, name='track_whatsapp'),
+    path('metrics/', views.metrics_dashboard, name='metrics_dashboard'),
 ]

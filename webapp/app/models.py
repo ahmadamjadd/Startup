@@ -9,11 +9,11 @@ class RoommateProfile(models.Model):
         regex=r'^03\d{9}$',
         message="Phone number must be entered in the format: '03001234567'"
     )
-    
+
     phone_number = models.CharField(
-        validators=[phone_regex], 
-        max_length=11, 
-        blank=True, 
+        validators=[phone_regex],
+        max_length=11,
+        blank=True,
         null=True
     )
 
@@ -31,3 +31,16 @@ class RoommateProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
+
+class MatchInteraction(models.Model):
+    viewer = models.ForeignKey(User, related_name='viewer_interactions', on_delete=models.CASCADE)
+    target = models.ForeignKey(User, related_name='target_interactions', on_delete=models.CASCADE)
+    match_score = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now=True)
+    whatsapp_clicked = models.BooleanField(default=False)
+
+    class Meta:
+        pass
+
+    def __str__(self):
+        return f"{self.viewer} -> {self.target} ({self.match_score}%)"

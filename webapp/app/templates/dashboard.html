@@ -3,13 +3,22 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-8 col-md-10">
-        
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold" style="color: var(--navy);">Your Matches</h2>
                 <p class="text-muted mb-0">Based on your compatibility score</p>
             </div>
-            <span class="badge bg-primary rounded-pill px-3 py-2">Top 5</span>
+
+            <div class="d-flex align-items-center gap-2">
+                {% if user.is_staff %}
+                    <a href="{% url 'metrics_dashboard' %}" class="btn btn-outline-danger btn-sm fw-bold">
+                        <i class="bi bi-speedometer2 me-1"></i> Dev Metrics
+                    </a>
+                {% endif %}
+
+                <span class="badge bg-primary rounded-pill px-3 py-2">Top 5</span>
+            </div>
         </div>
 
         {% if missing_phone %}
@@ -19,7 +28,7 @@
                 <div class="flex-grow-1">
                     <h5 class="alert-heading fw-bold mb-1">Get Connected</h5>
                     <p class="mb-2 small text-muted">Add your phone number so your matches can reach you on WhatsApp.</p>
-                    
+
                     <form method="POST" action="{% url 'add_phone' %}" class="row g-2 align-items-center">
                         {% csrf_token %}
                         <div class="col-sm-8">
@@ -39,7 +48,7 @@
             <div class="card mb-3 border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
                 <div class="card-body p-4">
                     <div class="row align-items-center">
-                        
+
                         <div class="col-md-7">
                             <div class="d-flex align-items-center mb-3 mb-md-0">
                                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
@@ -60,10 +69,10 @@
                                 <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill">
                                     <i class="bi bi-stars me-1"></i> {{ match.score }}% Match
                                 </span>
-                                
+
                                 {% if match.phone %}
-                                    <a href="https://wa.me/{{ match.phone }}?text=Hey!%20I%20saw%20we%20matched%20on%20Roomify." 
-                                       target="_blank" 
+                                    <a href="{% url 'track_whatsapp' match.user_id %}"
+                                       target="_blank"
                                        class="btn btn-success btn-sm w-100 fw-bold" style="max-width: 180px;">
                                        <i class="bi bi-whatsapp me-1"></i> Chat on WhatsApp
                                     </a>

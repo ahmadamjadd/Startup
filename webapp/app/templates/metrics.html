@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold" style="color: var(--navy);">System Metrics</h2>
+                <p class="text-muted mb-0">Real-time performance tracking for developers.</p>
+            </div>
+            <span class="badge bg-danger rounded-pill px-3 py-2">
+                <i class="bi bi-shield-lock-fill me-1"></i> Admin Area
+            </span>
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                <i class="bi bi-whatsapp fs-5"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">Match-to-Contact</h6>
+                        </div>
+
+                        <h2 class="display-5 fw-bold mb-1" style="color: var(--navy);">
+                            {{ mcr|floatformat:1 }}<span class="fs-4">%</span>
+                        </h2>
+                        <p class="small text-muted mb-3">
+                            {{ total_clicks }} clicks / {{ total_views }} views
+                        </p>
+
+                        <div class="alert alert-light border-0 bg-light small mb-0 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Action:</strong> If < 5%, adjust penalties for cleanliness.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                <i class="bi bi-person-check-fill fs-5"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">Profile Completion</h6>
+                        </div>
+
+                        <h2 class="display-5 fw-bold mb-1" style="color: var(--navy);">
+                            {{ pcr|floatformat:1 }}<span class="fs-4">%</span>
+                        </h2>
+                        <p class="small text-muted mb-3">
+                            {{ total_profiles }} profiles / {{ total_users }} users
+                        </p>
+
+                        <div class="alert alert-light border-0 bg-light small mb-0 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Action:</strong> If < 60%, simplify the QuizForm.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                <i class="bi bi-sliders fs-5"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">Avg Top Score</h6>
+                        </div>
+
+                        <h2 class="display-5 fw-bold mb-1" style="color: var(--navy);">
+                            {{ avg_top_score|floatformat:1 }}<span class="fs-4">%</span>
+                        </h2>
+                        <p class="small text-muted mb-3">
+                            Mean of users' best matches
+                        </p>
+
+                        <div class="alert alert-light border-0 bg-light small mb-0 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Action:</strong> Ideal range is 40% - 90%. Adjust logic if outside.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

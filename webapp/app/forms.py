@@ -25,19 +25,18 @@ class EmailAuthenticationForm(AuthenticationForm):
         max_length=254,
         widget=forms.TextInput(attrs={
             'autofocus': True,
-            'class': 'form-control',  # <--- THIS WAS MISSING
+            'class': 'form-control',
             'placeholder': 'Enter your email'
         })
     )
     password = forms.CharField(
         label="Password",
         widget=forms.PasswordInput(attrs={
-            'class': 'form-control', # <--- THIS WAS MISSING
+            'class': 'form-control',
             'placeholder': 'Enter your password'
         })
     )
 
-    # ... (keep your existing clean method exactly as it is) ...
     def clean(self):
         email = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
