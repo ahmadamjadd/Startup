@@ -1,12 +1,36 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card" style="max-width: 400px; margin: 0 auto;">
-    <h2 class="text-center">Login</h2>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Login</button>
-    </form>
-    <p class="text-center">New here? <a href="{% url 'register' %}" style="color: var(--blue);">Create Account</a></p>
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="col-md-5 col-lg-4">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h3 class="mb-0">Welcome Back</h3>
+            </div>
+            <div class="p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted mb-1">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary w-100 btn-custom mt-3">
+                        Log In
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="small text-muted mb-0">Don't have an account?</p>
+                    <a href="{% url 'register' %}" class="fw-bold text-decoration-none" style="color: var(--blue);">Create Account</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

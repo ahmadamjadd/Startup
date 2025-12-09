@@ -1,29 +1,45 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card">
-    <h2 class="text-center" style="color: var(--navy);">Behavioral Quiz</h2>
-    <p class="text-center">Help the AI find your perfect roommate.</p>
-    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-    
-    <form method="POST">
-        {% csrf_token %}
-        
-        <label><strong>Hostel Room No:</strong></label>
-        {{ form.hostel_room_no }}
+<div class="card shadow">
+    <div class="card-body">
+        <h2 class="text-center" style="color: var(--navy);">Behavioral Quiz</h2>
+        <p class="text-center text-muted">Help the AI find your perfect roommate.</p>
+        <hr>
 
-        <label><strong>Sleep Schedule:</strong></label>
-        {{ form.sleep_schedule }}
+        <form method="POST">
+            {% csrf_token %}
 
-        <label><strong>Cleanliness Level (1=Messy, 5=Clean):</strong></label>
-        {{ form.cleanliness_level }}
+            <div class="mb-3">
+                <label class="form-label"><strong>Phone Number (WhatsApp):</strong></label>
+                {{ form.phone_number }}
+                <div class="form-text">Format: 03001234567 (Strictly 11 digits)</div>
+                {% if form.phone_number.errors %}
+                    <div class="text-danger small">{{ form.phone_number.errors }}</div>
+                {% endif %}
+            </div>
 
-        <label><strong>Noise Tolerance (1=Silence, 5=Loud):</strong></label>
-        {{ form.noise_tolerance }}
+            <div class="mb-3">
+                <label class="form-label"><strong>Sleep Schedule:</strong></label>
+                {{ form.sleep_schedule }}
+            </div>
 
-        <label><strong>Study Habit:</strong></label>
-        {{ form.study_habit }}
+            <div class="mb-3">
+                <label class="form-label"><strong>Cleanliness Level (1=Messy, 5=Clean):</strong></label>
+                {{ form.cleanliness_level }}
+            </div>
 
-        <button type="submit">Find Matches</button>
-    </form>
+            <div class="mb-3">
+                <label class="form-label"><strong>Noise Tolerance (1=Silence, 5=Loud):</strong></label>
+                {{ form.noise_tolerance }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label"><strong>Study Habit:</strong></label>
+                {{ form.study_habit }}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" style="background-color: var(--blue);">Find Matches</button>
+        </form>
+    </div>
 </div>
 {% endblock %}
