@@ -9,17 +9,30 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
-from .models import RoommateProfile, User, MatchInteraction
-from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm, UpdateForm
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Max, Avg
-  
+
+# ML Libraries
 import numpy as np
 import pandas as pd
-from sklearn.neighbors import NearestNeighbors
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
-from django.db.models import Max, Avg
-  
+
+# Project-Specific Imports
+from .models import RoommateProfile, User, MatchInteraction
+from .forms import UserRegisterForm, QuizForm, EmailAuthenticationForm, UpdateForm
+
+import joblib
+
+# --- GLOBAL CONFIGURATION AND ML STATE ---
+ML_ACTIVE_THRESHOLD = 1
+N_NEW_USERS_TO_RETRAIN = 5  # New setting: Retrain after 5 new profiles
+ML_MODEL_PATH = 'trained_recommender.joblib' 
+
+trained_model = None # This will now hold the loaded model/scaler dict
+last_profile_count = 0 # Tracks the profile count at the last successful training
+
+# ... (rest of the file follows) ...
 
 def email_user(request, user):
     """Sends a verification email to the user."""
@@ -129,16 +142,208 @@ def add_phone_number(request):
         else:
             messages.error(request, "Please enter a valid phone number starting with 03.")
     return redirect('dashboard')
- 
+
+
+def train_recommender(profiles):
+    """Generates ground truth using the heuristic, trains the model, and saves it to disk."""
+    global trained_model, last_profile_count
+    
+    data = []
+    # ... (Data generation code remains the same) ...
+    # Removed for brevity, use existing logic to populate 'data'
+
+    # (Original data generation code from previous response)
+    # ----------------------------------------------------
+    # Heuristic-based data generation starts here
+    # ----------------------------------------------------
+    for p1 in profiles:
+        for p2 in profiles:
+            if p1.user == p2.user: continue
+            
+            score = 100
+            if p1.sleep_schedule != p2.sleep_schedule: score -= 25
+            if p1.study_habit != p2.study_habit: score -= 15
+            score -= (abs(p1.cleanliness_level - p2.cleanliness_level) * 5)
+            score -= (abs(p1.noise_tolerance - p2.noise_tolerance) * 5)
+            target_score = max(score, 0)
+            
+            sleep_diff = 1 if p1.sleep_schedule != p2.sleep_schedule else 0
+            study_diff = 1 if p1.study_habit != p2.study_habit else 0
+            
+            features = [
+                sleep_diff,
+                study_diff,
+                abs(p1.cleanliness_level - p2.cleanliness_level),
+                abs(p1.noise_tolerance - p2.noise_tolerance),
+                p1.cleanliness_level,
+                p1.noise_tolerance
+            ]
+            
+            data.append(features + [target_score])
+    # ----------------------------------------------------
+    # End of data generation
+    # ----------------------------------------------------
+
+    if not data:
+        return
+
+    df = pd.DataFrame(data)
+    X = df.iloc[:, :-1].values
+    y = df.iloc[:, -1].values
+    
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    model = LinearRegression()
+    model.fit(X_scaled, y)
+    
+    # Store and save to disk
+    current_profiles = RoommateProfile.objects.count()
+    trained_model = {'model': model, 'scaler': scaler, 'profile_count': current_profiles}
+    joblib.dump(trained_model, ML_MODEL_PATH)
+    
+    last_profile_count = current_profiles
+    print(f"ML Recommender System trained and saved on {len(data)} pairs. Profile count: {last_profile_count}")
+
+def load_recommender():
+    global trained_model, last_profile_count
+    if trained_model is None and os.path.exists(ML_MODEL_PATH):
+        try:
+            trained_model = joblib.load(ML_MODEL_PATH)
+            last_profile_count = trained_model.get('profile_count', 0)
+            print(f"ML Model loaded from disk. Last trained with {last_profile_count} profiles.")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            trained_model = None
+
+@login_required
+def dashboard_view(request):
+    global trained_model, last_profile_count
+    
+    try:
+        my_profile = request.user.roommateprofile
+    except RoommateProfile.DoesNotExist:
+        return redirect('quiz')
+
+    missing_phone = False
+    phone_form = None
+
+    if not my_profile.phone_number:
+        missing_phone = True
+        phone_form = UpdateForm(instance=my_profile)
+
+    all_profiles = RoommateProfile.objects.exclude(user=request.user)
+    
+    # Load model if not in memory
+    load_recommender() 
+    
+    # --- ML Fallback & Retraining Logic ---
+    total_profiles = RoommateProfile.objects.count()
+    use_ml_recommender = total_profiles >= ML_ACTIVE_THRESHOLD
+
+    # Retraining Trigger: N new users since last training
+    retrain_needed = (trained_model is not None and 
+                      total_profiles >= last_profile_count + N_NEW_USERS_TO_RETRAIN)
+
+    if (use_ml_recommender and trained_model is None) or retrain_needed:
+        print("Starting ML Model training/retraining...")
+        # Note: If this is the first training run, the global trained_model is None.
+        train_recommender(RoommateProfile.objects.all())
+        
+        # If training still failed (e.g., lack of data or error), fallback to heuristic
+        if trained_model is None:
+             use_ml_recommender = False
+             
+    # --- End ML Fallback & Retraining Logic ---
+
+    matches = []
+    print(f"\n--- MATCHING PROCESS FOR USER: {request.user.username} ---")
+    print(f"Total Profiles: {total_profiles}. ML Active: {'YES' if use_ml_recommender else 'NO (Fallback to Heuristic)'}")
+    
+    # ... (The core matching loop follows, which uses either the ML or Heuristic path based on `use_ml_recommender`) ...
+    # The rest of dashboard_view is the same logic as before, using `final_score`.
+
+    # Final logic structure for the loop:
+    for other in all_profiles:
+        
+        if use_ml_recommender and trained_model:
+            # --- ML Recommender Path (Substitution) ---
+            # ... (ML prediction code remains the same as in previous response) ...
+            p1 = my_profile
+            p2 = other
+            
+            sleep_diff = 1 if p1.sleep_schedule != p2.sleep_schedule else 0
+            study_diff = 1 if p1.study_habit != p2.study_habit else 0
+            
+            features = np.array([[
+                sleep_diff,
+                study_diff,
+                abs(p1.cleanliness_level - p2.cleanliness_level),
+                abs(p1.noise_tolerance - p2.noise_tolerance),
+                p1.cleanliness_level,
+                p1.noise_tolerance
+            ]])
+            
+            scaler = trained_model['scaler']
+            X_scaled = scaler.transform(features)
+            
+            model = trained_model['model']
+            predicted_score = model.predict(X_scaled)[0]
+            
+            final_score = round(max(0, min(100, predicted_score)))
+            
+            print(f"Target: {other.user.username:<10} | Score Source: ML Recommender | Final Score: {final_score:>3}%")
+
+        else:
+            # --- Heuristic Path (Fallback) ---
+            score = 100
+            if my_profile.sleep_schedule != other.sleep_schedule: score -= 25
+            if my_profile.study_habit != other.study_habit: score -= 15
+            score -= (abs(my_profile.cleanliness_level - other.cleanliness_level) * 5)
+            score -= (abs(my_profile.noise_tolerance - other.noise_tolerance) * 5)
+            final_score = max(score, 0)
+            
+            print(f"Target: {other.user.username:<10} | Score Source: Heuristic | Final Score: {final_score:>3}%")
+
+        matches.append({
+            'name': other.user.first_name or other.user.username,
+            'score': final_score,
+            'sleep': other.sleep_schedule,
+            'clean': other.cleanliness_level,
+            'phone': other.phone_number,
+            'profile': other,
+            'user_id': other.user.id
+        })
+
+    print("---------------------------------------------------\n")
+
+    matches.sort(key=lambda x: x['score'], reverse=True)
+    top_matches = matches[:5]
+
+    for match in top_matches:
+        MatchInteraction.objects.update_or_create(
+            viewer=request.user,
+            target=match['profile'].user,
+            defaults={'match_score': match['score']}
+        )
+
+    context = {
+        'matches': top_matches,
+        'missing_phone': missing_phone,
+        'phone_form': phone_form
+    }
+
+    return render(request, 'dashboard.html', context)
+
 
 @login_required
 def track_whatsapp_click(request, target_id):
     """
-    Intermediary view to log the click (Metric 1) before redirecting to WhatsApp.
+    Intermediary view to log the click before redirecting to WhatsApp.
     """
     try:
         target_user = User.objects.get(pk=target_id)
-  
+        # Find the interaction record and mark it as clicked
         interaction = MatchInteraction.objects.filter(
             viewer=request.user,
             target=target_user
@@ -148,7 +353,7 @@ def track_whatsapp_click(request, target_id):
             interaction.whatsapp_clicked = True
             interaction.save()
 
-  
+        # Redirect to WhatsApp
         phone_number = target_user.roommateprofile.phone_number
         if phone_number:
             wa_url = f"https://wa.me/{phone_number}?text=Hey!%20I%20saw%20we%20matched%20on%20Roomify."
@@ -189,138 +394,3 @@ def metrics_dashboard(request):
         }
 
     return render(request, 'metrics.html', context)
-
-
-  
-def get_knn_score(my_profile, all_profiles, k=5):
-    """
-    Calculates a k-NN similarity score for each profile relative to the user.
-    The score is based on the inverse of the distance (similarity).
-    """
-    if not all_profiles:
-        return {}
-  
-    sleep_map = {'Early': 0, 'Late': 1}
-    study_map = {'Morning': 0, 'Night': 1, 'Mix': 0.5}
-
-    def extract_features(profile):
-        return [
-            sleep_map.get(profile.sleep_schedule, 0.5), # Scale is 0 to 1
-            profile.cleanliness_level,                   # Scale is 1 to 5
-            profile.noise_tolerance,                     # Scale is 1 to 5
-            study_map.get(profile.study_habit, 0.5),     # Scale is 0 to 1
-        ]
-
-  
-    profile_data = [extract_features(p) for p in list(all_profiles) + [my_profile]]
-    profile_users = [p.user.id for p in all_profiles] + [my_profile.user.id]
-
-    my_profile_index = len(profile_users) - 1
-
-  
-    df = pd.DataFrame(profile_data, columns=['sleep', 'cleanliness', 'noise', 'study'])
-    
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(df.values)
-    
-    X_train = scaled_features[:-1] # All others
-    X_test = scaled_features[my_profile_index].reshape(1, -1) # Current user
-
-    if X_train.shape[0] < k:
-        k = X_train.shape[0] # Adjust K if not enough neighbors
-
-    if k == 0:
-        return {}
-
-    knn = NearestNeighbors(n_neighbors=k, algorithm='brute', metric='euclidean')
-    knn.fit(X_train)
-    distances, indices = knn.kneighbors(X_test, n_neighbors=X_train.shape[0], return_distance=True)
-    distances = distances.flatten()
-    indices = indices.flatten()
-    max_distance = np.max(distances) if distances.size > 0 else 1 
-    
-    knn_scores = {}
-    for dist, idx in zip(distances, indices):
-  
-        normalized_distance = dist / (max_distance + 1e-6)
-        similarity = (1 - normalized_distance) * 100 # 0 (low sim) to 100 (high sim)
-        
-  
-        target_user_id = profile_users[idx]
-        knn_scores[target_user_id] = round(similarity)
-
-    return knn_scores
-
-@login_required
-def dashboard_view(request):
-    try:
-        my_profile = request.user.roommateprofile
-    except RoommateProfile.DoesNotExist:
-        return redirect('quiz')
-
-    missing_phone = False
-    phone_form = None
-
-    if not my_profile.phone_number:
-        missing_phone = True
-        phone_form = UpdateForm(instance=my_profile)
-
-    all_profiles = RoommateProfile.objects.exclude(user=request.user)
-    
-    knn_scores = get_knn_score(my_profile, all_profiles, k=5) 
-    
-    matches = []
-    
-  
-    print(f"\n--- MATCHING PROCESS FOR USER: {request.user.username} ---")
-    
-    for other in all_profiles:
-  
-        heuristic_score = 100
-        if my_profile.sleep_schedule != other.sleep_schedule: heuristic_score -= 25
-        if my_profile.study_habit != other.study_habit: heuristic_score -= 15
-        heuristic_score -= (abs(my_profile.cleanliness_level - other.cleanliness_level) * 5)
-        heuristic_score -= (abs(my_profile.noise_tolerance - other.noise_tolerance) * 5)
-        final_heuristic_score = max(heuristic_score, 0)
-  
- 
-        ml_score = knn_scores.get(other.user.id, 0) 
-  
-        combined_score = round((0.6 * final_heuristic_score) + (0.4 * ml_score))
-  
-        print(f"Target: {other.user.username:<10} | Heuristic: {final_heuristic_score:>3}% | KNN: {ml_score:>3}% | Combined (60/40): {combined_score:>3}%")
-        
-        matches.append({
-            'name': other.user.first_name or other.user.username,
-            'score': combined_score,        
-            'sleep': other.sleep_schedule,
-            'clean': other.cleanliness_level,
-            'phone': other.phone_number,
-            'profile': other,
-            'user_id': other.user.id
-        })
-
-    print("---------------------------------------------------\n")
-  
-
-    matches.sort(key=lambda x: x['score'], reverse=True)
-    top_matches = matches[:5]
-
-  
-  
-    for match in top_matches:
-  
-        MatchInteraction.objects.update_or_create(
-            viewer=request.user,
-            target=match['profile'].user,
-            defaults={'match_score': match['score']}
-        )
-  
-
-    context = {
-        'matches': top_matches,
-        'missing_phone': missing_phone,
-        'phone_form': phone_form
-    }
-
-    return render(request, 'dashboard.html', context)
